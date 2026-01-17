@@ -206,15 +206,7 @@ for(float duty = 0.025; duty <= 0.125; duty += 0.002) {
 # 或点击菜单: Project → Rebuild all target files
 ```
 
-### 2. 烧录程序
-
-```bash
-# 连接ST-Link调试器到STM32F103C8开发板
-# Keil中选择: Flash → Download
-# 或按快捷键: F8
-```
-
-### 3. 连接硬件
+### 2. 连接硬件
 
 按照以下方式连接外设（以舵机为例）：
 
@@ -232,37 +224,6 @@ STM32F103C8开发板
 │
 ├─ GND  → 舵机GND (黑线)  [所有舵机共享]
 └─ 5V   → 舵机VCC (红线)  [通过稳压模块供电]
-```
-
-### 4. 代码示例
-
-```c
-#include "pwm_config.h"
-#include "delay.h"
-
-int main(void) {
-    // 初始化系统
-    pwm_init();
-
-    // 示例1：控制单个舵机到中间位置
-    pwm_set_duty(PWM_CHANNEL1, 0.075);  // 7.5% = 1.5ms (舵机中间位置)
-    delay_ms(500);
-
-    // 示例2：扫描所有通道
-    while(1) {
-        for(float duty = 0.025; duty <= 0.125; duty += 0.005) {
-            pwm_set_all_duty(duty);
-            delay_ms(100);
-        }
-
-        for(float duty = 0.125; duty >= 0.025; duty -= 0.005) {
-            pwm_set_all_duty(duty);
-            delay_ms(100);
-        }
-    }
-
-    return 0;
-}
 ```
 
 ---
@@ -283,42 +244,6 @@ int main(void) {
 
 ---
 
-## 🔧 常见操作
-
-### 修改PWM频率
-
-如需修改PWM频率（如改为100Hz = 10ms周期）：
-
-编辑 `tim_init.c`，修改计数值：
-```c
-// 原来: 20ms周期
-TIM_TimeBaseInitStructure.TIM_Period = 20000;  // 20ms
-
-// 改为: 10ms周期（100Hz）
-TIM_TimeBaseInitStructure.TIM_Period = 10000;  // 10ms
-```
-
-### 修改PWM分辨率
-
-增加分频系数可提高分辨率（代价是降低频率）：
-```c
-// 原来: 72分频 → 1MHz计数频率
-TIM_TimeBaseInitStructure.TIM_Prescaler = 72 - 1;
-
-// 改为: 36分频 → 2MHz计数频率（分辨率翻倍）
-TIM_TimeBaseInitStructure.TIM_Prescaler = 36 - 1;
-```
-
-### 添加新的PWM通道
-
-STM32F103有多个定时器支持PWM输出，如需添加第9个通道：
-1. 选择未使用的定时器通道（如TIM1, TIM2等）
-2. 在 `gpio_init.c` 中添加新引脚的GPIO配置
-3. 在 `tim_init.c` 中初始化对应的定时器
-4. 在 `pwm_config.c` 中扩展通道定义
-
----
-
 ## ⚠️ 注意事项
 
 1. **电源管理**：
@@ -327,11 +252,9 @@ STM32F103有多个定时器支持PWM输出，如需添加第9个通道：
 
 2. **引脚冲突**：
    - PA6, PA7, PB0, PB1, PB6, PB7, PB8, PB9 仅用于PWM输出
-   - 如需复用这些引脚做其他用途，需修改pwm_config.c中的引脚定义
 
 3. **调试技巧**：
    - 使用示波器观察各PWM引脚的波形
-   - 在Keil中设置断点调试pwm_set_duty()函数
 
 ---
 
@@ -340,23 +263,15 @@ STM32F103有多个定时器支持PWM输出，如需添加第9个通道：
 **原始引脚配置文档：** `八通道输出引脚.txt`
 
 该文件包含项目设计初期的引脚配置记录，是项目的设计基础。若需要修改硬件引脚分配，应同时更新以下文件：
-- pwm_config.h (更新宏定义)
-- gpio_init.c (更新GPIO引脚)
-- tim_init.c (更新定时器映射)
-
----
-
-## 📚 相关资源
-
-- [STM32F103数据手册](https://www.st.com/resource/en/datasheet/stm32f103c8.pdf)
-- [STM32F10x标准库文档](https://www.st.com/en/embedded-software/stsw-stm32054.html)
-- [Keil MDK使用指南](https://www.keil.com/support/man/docs/uv4/index.htm)
+- pwm_config.h (PWM操作功能模块)
+- gpio_init.c (GPIO初始化模块)
+- tim_init.c (定时器配置模块)
 
 ---
 
 ## 📧 项目信息
 
-- **目标芯片**: STM32F103C8 (100引脚)
+- **目标芯片**: STM32F103C8T6
 - **开发环境**: Keil µVision 5
 - **编程语言**: C
 - **应用场景**: 舵机控制、多轴无人机、机器人控制等
@@ -364,4 +279,4 @@ STM32F103有多个定时器支持PWM输出，如需添加第9个通道：
 ---
 
 **最后更新**: 2026年1月
-**项目状态**: 功能完整
+**项目状态**: 仅包含基础模块
