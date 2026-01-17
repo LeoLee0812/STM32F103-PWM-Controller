@@ -1,0 +1,8 @@
+pwm_channel1:  GPIOA->PIN6
+pwm_channel2:  GPIOA->PIN7
+pwm_channel3:  GPIOB->PIN0
+pwm_channel4:  GPIOB->PIN1
+pwm_channel5:  GPIOB->PIN6
+pwm_channel6:  GPIOB->PIN7
+pwm_channel7:  GPIOB->PIN8
+pwm_channel8:  GPIOB->PIN9
