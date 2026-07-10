@@ -1,282 +1,154 @@
-# STM32F103C8 8通道PWM输出控制项目
+<div align="center">
 
-## 项目概述
+# ⚡ STM32F103 PWM Controller
 
-这是一个基于STM32F103C8微控制器的多通道PWM输出控制系统，支持8个独立的PWM输出通道，适用于舵机控制、电机驱动、多轴无人机或机器人等应用场景。
+**基于 STM32F103C8 的八通道独立 PWM 输出控制器，适用于舵机 / 电调 / 机器人多轴控制**
 
-**核心特性：**
-- ✅ 8个独立PWM输出通道
-- ✅ 50Hz标准频率（20ms周期）
-- ✅ 动态占空比调整，支持实时脉宽修改
-- ✅ 采用STM32标准库，易于扩展
-- ✅ Keil MDK开发环境
+*An 8-channel PWM controller on STM32F103C8 — servo & ESC ready, 50 Hz, per-channel duty control.*
+
+![MCU](https://img.shields.io/badge/MCU-STM32F103C8-03234B?style=flat-square&logo=stmicroelectronics&logoColor=white)
+![Core](https://img.shields.io/badge/Core-ARM%20Cortex--M3%20%40%2072MHz-0091BD?style=flat-square&logo=arm&logoColor=white)
+![Language](https://img.shields.io/badge/Language-C-A8B9CC?style=flat-square&logo=c&logoColor=white)
+![Channels](https://img.shields.io/badge/PWM-8%20Channels%20%40%2050Hz-success?style=flat-square)
+![IDE](https://img.shields.io/badge/IDE-Keil%20MDK--ARM-orange?style=flat-square)
+
+</div>
 
 ---
 
-## 🔌 引脚配置详解
+## ✨ 简介
+
+这是一个基于 STM32F103C8 微控制器的多通道 PWM 输出控制系统，利用 TIM3 + TIM4 各 4 个比较通道，提供 **8 路独立的 50 Hz PWM 输出**，支持运行时逐通道动态调整占空比。适用于舵机控制、无刷电机（电调）驱动、多轴无人机、机器人等场景。
+
+**核心特性：**
+
+- ✅ 8 个独立 PWM 输出通道（TIM3 CH1-4 + TIM4 CH1-4）
+- ✅ 50 Hz 标准频率（20 ms 周期），占空比分辨率 20000 步
+- ✅ 位掩码按需使能任意通道组合，占空比可实时修改
+- ✅ 内置舵机 / 无刷电调占空比上下限宏定义
+- ✅ 基于 STM32 标准外设库，Keil MDK 开发环境，易于扩展
+
+## 🔌 引脚配置
 
 ### 引脚映射表
 
-| 通道 | GPIO端口 | 引脚号 | 定时器 | 功能说明 |
-|------|---------|--------|--------|---------|
-| CH1 | PA | PIN6 | TIM3 | PWM输出通道1 |
-| CH2 | PA | PIN7 | TIM3 | PWM输出通道2 |
-| CH3 | PB | PIN0 | TIM3 | PWM输出通道3 |
-| CH4 | PB | PIN1 | TIM3 | PWM输出通道4 |
-| CH5 | PB | PIN6 | TIM4 | PWM输出通道5 |
-| CH6 | PB | PIN7 | TIM4 | PWM输出通道6 |
-| CH7 | PB | PIN8 | TIM4 | PWM输出通道7 |
-| CH8 | PB | PIN9 | TIM4 | PWM输出通道8 |
+| 通道 | GPIO 引脚 | 定时器通道 | 功能说明 |
+|------|-----------|-----------|---------|
+| CH1 | PA6 | TIM3_CH1 | PWM 输出通道 1 |
+| CH2 | PA7 | TIM3_CH2 | PWM 输出通道 2 |
+| CH3 | PB0 | TIM3_CH3 | PWM 输出通道 3 |
+| CH4 | PB1 | TIM3_CH4 | PWM 输出通道 4 |
+| CH5 | PB6 | TIM4_CH1 | PWM 输出通道 5 |
+| CH6 | PB7 | TIM4_CH2 | PWM 输出通道 6 |
+| CH7 | PB8 | TIM4_CH3 | PWM 输出通道 7 |
+| CH8 | PB9 | TIM4_CH4 | PWM 输出通道 8 |
 
-### 定时器分配
+> 原始引脚设计记录见仓库根目录的 `八通道输出引脚.txt`。
 
-**TIM3（定时器3）控制通道1-4：**
-- PA6 → TIM3_CH1
-- PA7 → TIM3_CH2
-- PB0 → TIM3_CH3
-- PB1 → TIM3_CH4
+### GPIO 与时序参数
 
-**TIM4（定时器4）控制通道5-8：**
-- PB6 → TIM4_CH1
-- PB7 → TIM4_CH2
-- PB8 → TIM4_CH3
-- PB9 → TIM4_CH4
-
-### GPIO配置参数
-
-所有PWM输出引脚配置如下：
-- **输出模式：** 复用推挽输出（AF_PP - Alternate Function Push-Pull）
-- **速度等级：** 50MHz（高速模式）
-- **初始状态：** 低电平
-
-### PWM时序参数
+- **输出模式：** 复用推挽输出（AF_PP），50 MHz 速度等级
+- **PWM 时序：**
 
 ```
-频率：50Hz
-周期：20ms
-计数值：20000（在72MHz系统时钟下）
-分频系数：72
+频率：50Hz    周期：20ms
+分频系数：72   计数值：20000
 
-计算公式：
-  定时器频率 = 系统时钟 / 分频系数 = 72MHz / 72 = 1MHz
-  周期 = 计数值 / 定时器频率 = 20000 / 1MHz = 20ms
-  频率 = 1 / 周期 = 50Hz
+定时器频率 = 72MHz / 72 = 1MHz
+周期 = 20000 / 1MHz = 20ms  →  频率 = 50Hz
 ```
 
-### 占空比范围
+### 占空比范围（pwm_config.h 内置宏）
 
-根据应用不同，占空比范围如下：
+| 应用 | 宏定义 | 值 | 对应脉宽 |
+|------|--------|-----|---------|
+| 舵机最小位置 | `STEER_MIN` | 2.5% | 0.5 ms |
+| 舵机最大位置 | `STEER_MAX` | 12.5% | 2.5 ms |
+| 无刷电调最小 | `ENGINE_MIN` | 5% | 1.0 ms |
+| 无刷电调最大 | `ENGINE_MAX` | 9% | 1.8 ms |
 
-**舵机控制（SERVO）：**
+## ⚡ 快速开始
+
+### 1. 编译烧录
+
 ```
-最小位置 (STEER_MIN): 2.5%  (0.025 × 20ms = 0.5ms)
-中间位置 (STEER_MID): 7.5%  (0.075 × 20ms = 1.5ms)
-最大位置 (STEER_MAX): 12.5% (0.125 × 20ms = 2.5ms)
+用 Keil MDK 打开 user/project.uvprojx
+Project → Rebuild all target files（或 Ctrl+F7）
+通过 ST-Link / 串口 ISP 烧录
 ```
 
-**电机控制（ENGINE）：**
-```
-停止 (ENGINE_MIN): 根据电调配置设定
-全速 (ENGINE_MAX): 根据电调配置设定
+### 2. 核心 API（pwm_config.h）
+
+```c
+// 1. 先初始化 TIM3 / TIM4 时基：72 分频、20000 计数 → 20ms 周期
+TIMInitManager(TIM3, 72-1, 20000-1, 0, TIM_CounterMode_Up, TIM_CKD_DIV1, 0, 1, 0);
+TIMInitManager(TIM4, 72-1, 20000-1, 0, TIM_CounterMode_Up, TIM_CKD_DIV1, 0, 1, 0);
+
+// 2. 设置 8 个通道的初始占空比（传 -1 等负值表示该通道略过）
+PWM_SetInitDuty(0.075, 0.075, 0.075, 0.075, 0.075, 0.075, 0.075, 0.075);
+
+// 3. 按位掩码使能通道：0xFF 全开；0x15 (0001 0101) 只开通道 1/3/5
+PWM_Init(0xFF);
+
+// 4. 运行时动态修改某一通道的占空比
+PWM_SetNewDuty(0x01, STEER_MAX);  // 通道选择也是位掩码：0x01=CH1, 0x02=CH2, 0x04=CH3 ...
 ```
 
----
+`user/main.c` 提供了一个完整 DEMO：八路舵机同步从最小角度扫到最大角度循环转动。
+
+### 3. 硬件接线（以舵机为例）
+
+```
+STM32F103C8 开发板
+├─ PA6/PA7/PB0/PB1/PB6/PB7/PB8/PB9 → 舵机 1~8 的 PWM 信号线（黄）
+├─ GND → 舵机 GND（黑）  [共地]
+└─ 5V  → 舵机 VCC（红）  [经独立稳压模块供电]
+```
 
 ## 📁 项目结构
 
 ```
-project/main/
-│
-├── core/                           # ARM Cortex-M3核心库
-│   ├── core_cm3.h                  # Cortex-M3核心头文件
-│   └── core_cm3.c                  # Cortex-M3核心实现
-│
-├── device/                         # STM32F103设备配置
-│   ├── stm32f10x.h                 # 设备主头文件（寄存器定义）
-│   ├── stm32f10x_conf.h            # 驱动库配置文件
-│   ├── stm32f10x_it.h/.c           # 中断处理程序
-│   └── system_stm32f10x.h/.c       # 系统时钟初始化
-│
-├── driver/                         # STM32标准驱动库（CMSIS）
-│   ├── inc/                        # 驱动头文件目录
-│   │   ├── stm32f10x_gpio.h        # GPIO驱动接口
-│   │   ├── stm32f10x_tim.h         # 定时器驱动接口
-│   │   ├── stm32f10x_rcc.h         # 时钟控制驱动
-│   │   └── [其他21个驱动模块]
-│   └── src/                        # 驱动实现目录
-│       ├── stm32f10x_gpio.c
-│       ├── stm32f10x_tim.c
-│       └── [对应的25个实现文件]
-│
-├── startup/                        # 启动文件
-│
-├── user/                           # 用户应用代码（主要开发区）
-│   ├── main.c                      # 程序主入口
-│   ├── gpio_init.c                 # GPIO初始化模块
-│   ├── tim_init.c                  # 定时器初始化模块
-│   ├── pwm_config.c                # PWM配置管理模块 ⭐ 关键文件
-│   ├── delay.c                     # 延时函数模块
-│   ├── inc/                        # 用户代码头文件
-│   │   ├── gpio_init.h
-│   │   ├── tim_init.h
-│   │   ├── pwm_config.h            # ⭐ PWM配置头文件
-│   │   └── delay.h
-│   ├── project.uvprojx             # Keil MDK项目文件
-│   └── project.uvoptx              # Keil MDK项目选项
-│
-├── 八通道输出引脚.txt             # 引脚配置文档（原始配置记录）
-└── README.md                       # 本文件
+STM32F103-PWM-Controller/
+├── user/                    # 用户应用代码（主要开发区）
+│   ├── main.c               # 程序入口：八通道舵机扫动 DEMO
+│   ├── pwm_config.c/.h      # ⭐ 核心：PWM 通道初始化 + 占空比控制
+│   ├── gpio_init.c          # GPIO 复用推挽输出初始化
+│   ├── tim_init.c           # TIM3/TIM4 时基与 PWM 模式配置
+│   ├── delay.c              # 延时模块
+│   ├── inc/                 # 用户头文件
+│   └── project.uvprojx      # Keil MDK 工程文件
+├── driver/                  # STM32F10x 标准外设库（inc/ + src/）
+├── core/ & device/          # CMSIS 内核与设备启动配置
+├── startup/                 # 启动汇编文件
+└── 八通道输出引脚.txt        # 原始引脚配置设计记录
 ```
-
----
-
-## 🎯 关键文件说明
-
-### 1. **pwm_config.c / pwm_config.h** ⭐ 核心引脚控制文件
-
-这是项目中最重要的**引脚配置和PWM控制模块**，主要职责：
-
-**功能：**
-- 8个PWM通道的初始化配置
-- 动态修改各通道占空比
-- 通过位操作进行高效的多通道管理
-- 支持通道独立配置
-
-**关键函数/宏定义（预期）：**
-```c
-// 通道定义
-#define PWM_CHANNEL1  0  // PA6 - TIM3_CH1
-#define PWM_CHANNEL2  1  // PA7 - TIM3_CH2
-#define PWM_CHANNEL3  2  // PB0 - TIM3_CH3
-#define PWM_CHANNEL4  3  // PB1 - TIM3_CH4
-#define PWM_CHANNEL5  4  // PB6 - TIM4_CH1
-#define PWM_CHANNEL6  5  // PB7 - TIM4_CH2
-#define PWM_CHANNEL7  6  // PB8 - TIM4_CH3
-#define PWM_CHANNEL8  7  // PB9 - TIM4_CH4
-
-// 核心函数
-void pwm_init(void);                           // 初始化所有PWM通道
-void pwm_set_duty(uint8_t channel, float duty); // 设置指定通道占空比 (0.0~1.0)
-void pwm_set_all_duty(float duty);             // 同时设置所有通道占空比
-```
-
-**在main.c中的使用示例：**
-```c
-// 初始化
-pwm_init();
-
-// 设置单个通道：舵机控制（向右转45度）
-pwm_set_duty(PWM_CHANNEL1, 0.100);  // 设置通道1为10%占空比
-
-// 设置所有通道：批量操作
-pwm_set_all_duty(0.075);  // 所有舵机回到中间位置
-
-// 运行时动态调整
-for(float duty = 0.025; duty <= 0.125; duty += 0.002) {
-    pwm_set_all_duty(duty);  // 扫描所有通道从最小到最大
-    delay_ms(50);
-}
-```
-
-### 2. **gpio_init.c / gpio_init.h** - GPIO初始化模块
-
-负责PA和PB端口的GPIO引脚初始化：
-- 启用GPIOA和GPIOB时钟
-- 配置8个引脚为复用推挽输出模式（AF_PP）
-- 设置50MHz高速工作模式
-
-### 3. **tim_init.c / tim_init.h** - 定时器初始化模块
-
-负责TIM3和TIM4定时器的初始化：
-- 配置72分频（1MHz计数频率）
-- 设置20000计数值（20ms周期）
-- 启用PWM输出模式
-
----
-
-## 🚀 快速开始
-
-### 1. 编译项目
-
-```bash
-# 使用Keil MDK打开项目
-# 打开: user/project.uvprojx
-
-# 编译快捷键: Ctrl+F7
-# 或点击菜单: Project → Rebuild all target files
-```
-
-### 2. 连接硬件
-
-按照以下方式连接外设（以舵机为例）：
-
-```
-STM32F103C8开发板
-│
-├─ PA6  → 舵机1的PWM输入 (黄线)
-├─ PA7  → 舵机2的PWM输入
-├─ PB0  → 舵机3的PWM输入
-├─ PB1  → 舵机4的PWM输入
-├─ PB6  → 舵机5的PWM输入
-├─ PB7  → 舵机6的PWM输入
-├─ PB8  → 舵机7的PWM输入
-├─ PB9  → 舵机8的PWM输入
-│
-├─ GND  → 舵机GND (黑线)  [所有舵机共享]
-└─ 5V   → 舵机VCC (红线)  [通过稳压模块供电]
-```
-
----
 
 ## 📊 技术规格
 
 | 参数 | 值 |
 |------|-----|
-| **微控制器** | STM32F103C8 (ARM Cortex-M3) |
-| **系统时钟** | 72MHz |
-| **PWM频率** | 50Hz |
-| **PWM周期** | 20ms |
-| **输出通道数** | 8个 |
-| **占空比分辨率** | 20000步（1MHz/20000） |
-| **输出电压** | 3.3V TTL (或通过电平转换到5V) |
-| **GPIO口** | PA6, PA7, PB0, PB1, PB6, PB7, PB8, PB9 |
-| **定时器** | TIM3 (通道1-4), TIM4 (通道5-8) |
-
----
+| 微控制器 | STM32F103C8（ARM Cortex-M3） |
+| 系统时钟 | 72 MHz |
+| PWM 频率 / 周期 | 50 Hz / 20 ms |
+| 输出通道数 | 8 |
+| 占空比分辨率 | 20000 步（1 µs 步进） |
+| 输出电平 | 3.3V TTL（可经电平转换到 5V） |
+| 占用引脚 | PA6, PA7, PB0, PB1, PB6, PB7, PB8, PB9 |
+| 定时器 | TIM3（通道 1-4）、TIM4（通道 5-8） |
 
 ## ⚠️ 注意事项
 
-1. **电源管理**：
-   - 多个舵机/电机共享5V电源时，需要使用独立的稳压电源
-   - 避免通过单片机直接驱动高功率负载
+1. **电源管理**：多个舵机 / 电机共享 5V 电源时，请使用独立稳压电源，避免用单片机直接驱动高功率负载。
+2. **引脚冲突**：上表 8 个引脚已专用于 PWM 输出，请勿复用。
+3. **修改引脚分配**时需同步更新 `pwm_config.h`、`gpio_init.c`、`tim_init.c` 三处。
+4. **调试技巧**：用示波器观察各 PWM 引脚波形验证脉宽。
 
-2. **引脚冲突**：
-   - PA6, PA7, PB0, PB1, PB6, PB7, PB8, PB9 仅用于PWM输出
+## 🛠️ 技术栈
 
-3. **调试技巧**：
-   - 使用示波器观察各PWM引脚的波形
+- **C 语言** + STM32F10x 标准外设库（SPL）
+- **Keil µVision 5**（MDK-ARM）
+- **应用场景**：舵机控制、多轴无人机、机器人控制等
 
----
+## ⭐ Star History
 
-## 📝 文件说明
-
-**原始引脚配置文档：** `八通道输出引脚.txt`
-
-该文件包含项目设计初期的引脚配置记录，是项目的设计基础。若需要修改硬件引脚分配，应同时更新以下文件：
-- pwm_config.h (PWM操作功能模块)
-- gpio_init.c (GPIO初始化模块)
-- tim_init.c (定时器配置模块)
-
----
-
-## 📧 项目信息
-
-- **目标芯片**: STM32F103C8T6
-- **开发环境**: Keil µVision 5
-- **编程语言**: C
-- **应用场景**: 舵机控制、多轴无人机、机器人控制等
-
----
-
-**最后更新**: 2026年1月
-**项目状态**: 仅包含基础模块
+[![Star History Chart](https://api.star-history.com/svg?repos=LeoLee0812/STM32F103-PWM-Controller&type=Date)](https://www.star-history.com/#LeoLee0812/STM32F103-PWM-Controller&Date)
